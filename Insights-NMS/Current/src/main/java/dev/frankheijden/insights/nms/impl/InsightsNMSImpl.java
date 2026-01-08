@@ -16,7 +16,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -50,15 +49,23 @@ public class InsightsNMSImpl extends InsightsNMS {
     }
 
     @Override
-    public void getUnloadedChunkSections(World world, int chunkX, int chunkZ, Consumer<ChunkSection> sectionConsumer) {
+    public void getUnloadedChunkSections(
+            World world,
+            int chunkX,
+            int chunkZ,
+            Consumer<ChunkSection> sectionConsumer
+    ) throws IOException {
         var serverLevel = ((CraftWorld) world).getHandle();
         int sectionsCount = serverLevel.getSectionsCount();
-        var chunkMap = serverLevel.getChunkSource().chunkMap;
-        var chunkPos = new ChunkPos(chunkX, chunkZ);
 
-        Optional<CompoundTag> tagOptional = chunkMap.read(chunkPos).join();
-        if (tagOptional.isEmpty()) return;
-        CompoundTag tag = tagOptional.get();
+        CompoundTag tag = MoonriseRegionFileIO.loadData(
+                serverLevel,
+                chunkX,
+                chunkZ,
+                MoonriseRegionFileIO.RegionFileType.CHUNK_DATA,
+                Priority.BLOCKING
+        );
+        if (tag == null) return;
 
         Optional<ListTag> optionalSectionsTagList = tag.getList("sections");
         if (optionalSectionsTagList.isEmpty()) {
@@ -101,8 +108,10 @@ public class InsightsNMSImpl extends InsightsNMS {
                         Blocks.AIR.defaultBlockState(),
                         new BlockState[0]
                 );
-                dataResult = blockStateCodec.parse(NbtOps.INSTANCE, sectionTag.getCompound("block_states").orElseThrow())
-                        .promotePartial(message -> logger.severe(String.format(
+                dataResult = blockStateCodec.parse(
+                        NbtOps.INSTANCE,
+                        sectionTag.getCompound("block_states").orElseThrow()
+                ).promotePartial(message -> logger.severe(String.format(
                         CHUNK_ERROR,
                         chunkX,
                         chunkSectionPart,
@@ -117,7 +126,11 @@ public class InsightsNMSImpl extends InsightsNMS {
                     throw ex;
                 }
             } else {
-                blockStateContainer = new PalettedContainer<>(Blocks.AIR.defaultBlockState(), strategy, new BlockState[0]);
+                blockStateContainer = new PalettedContainer<>(
+                        Blocks.AIR.defaultBlockState(),
+                        strategy,
+                        new BlockState[0]
+                );
             }
 
             LevelChunkSection chunkSection = new LevelChunkSection(blockStateContainer, null);
