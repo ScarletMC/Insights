@@ -56,6 +56,12 @@ public class AddonStorage {
     }
 
     public void put(String key, Storage storage) {
+        // A null storage means the scan that produced it failed; caching it would
+        // make the next get() throw (Optional.of(null)), so just skip the write and
+        // let the next lookup miss and retrigger a scan instead.
+        if (storage == null) {
+            return;
+        }
         while (distributionMap.size() >= maxSize) {
             evictOldest();
         }
