@@ -253,14 +253,11 @@ public abstract class InsightsListener extends InsightsBase implements Listener 
         AddonStorage addonStorage = plugin.getAddonStorage();
         Optional<Storage> storageOptional = addonStorage.get(key);
         if (storageOptional.isEmpty()) {
-            // Use tryAdd to atomically check if a scan is already in progress
-            if (!plugin.getAddonScanTracker().tryAdd(key)) {
-                // A scan is already in progress, but we need to remove the tracker
-                // since scanRegion won't be called
+            // Peek only: scanRegion() below owns the atomic tryAdd() that actually
+            // guards against duplicate scans, so this must not mutate the tracker.
+            if (plugin.getAddonScanTracker().isQueued(key)) {
                 return Optional.empty();
             }
-            // Remove the tracker since scanRegion will add it again
-            plugin.getAddonScanTracker().remove(key);
 
             // Notify the user scan started
             if (plugin.getSettings().canReceiveAreaScanNotifications(player)) {
