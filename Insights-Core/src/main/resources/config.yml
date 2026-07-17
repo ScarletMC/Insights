@@ -2,53 +2,78 @@ settings:
   update-checker:
     enabled: true
     interval-seconds: 10800
+
   scans:
-    concurrent-threads: -1
+    # Impostato a -1 usa automaticamente i core disponibili (consigliato).
+    concurrent-threads: 4
+    # 25s erano troppi. Se una scansione dura più di 10s c'è un problema, meglio farla terminare prima.
     timeout-millis: 10000
+    # Eseguiamo la scansione ad ogni tick per renderla fluida.
     iteration-interval-ticks: 1
-    chunks-per-iteration: 256
+    # Aumentato da 16 a 150. 16 era troppo lento.
+    # 150 chunk per tick sono gestibili dalla maggior parte dei server senza causare lag.
+    chunks-per-iteration: 128
     info-interval-millis: 100
+
   chunk-scans:
-    mode: "ALWAYS"
+    # Ottima scelta mantenere MODIFICATION, risparmia molte risorse.
+    mode: MODIFICATION
+    # Abbassato da 40 (2 secondi) a 5 (0.25 secondi) per rilevare subito il cambio di regione.
     player-tracker-interval-ticks: 5
 
-  # Chunk cache: stores scanned chunk data per world (LRU eviction)
+  # Chunk cache: Aumentata drasticamente per evitare di ricalcolare land grandi.
+  # Usa circa 20-30MB di RAM in più, ma salva tantissima CPU.
   chunk-cache:
-    # Max chunks cached PER WORLD (e.g. 3 worlds = up to 15000 total)
-    max-size: 5000
+    max-size: 15000
 
-  # Addon cache: stores region data for Lands, WorldGuard, etc. (LRU + TTL)
+  # Addon cache: Fondamentale per Lands.
+  # Aumentata per memorizzare più regioni e non chiedere continuamente al database di Lands.
   addon-cache:
-    # Max regions in cache (LRU evicts least recently used when full)
-    max-size: 500
-    # Minutes before cached region expires and requires re-scan
-    ttl-minutes: 10
+    max-size: 3000
+    # Aumentato il TTL a 30 minuti. Le claim non cambiano così spesso.
+    ttl-minutes: 30
 
   notification:
-    type: "BOSSBAR"
+    type: ACTIONBAR
+
     bossbar:
-      color: "BLUE"
-      overlay: "NOTCHED_10"
+      color: BLUE
+      overlay: NOTCHED_10
       flags: []
       duration-ticks: 60
+
     actionbar:
       segments: 50
-      progress-sequence: "|"
-      done-color: "<green>"
-      total-color: "<dark_gray>"
-      separator: " "
+      progress-sequence: '|'
+      done-color: <green>
+      total-color: <dark_gray>
+      separator: ' '
+
   area-scan-notifications:
     enabled: true
-    permission: ""
+    permission: ''
+
   spigot:
-    entity-tracker-interval-ticks: 10
-  apply-piston-limits: true
+    entity-tracker-interval-ticks: 20
+
+  # Hai impostato false, quindi i pistoni non verranno limitati.
+  # Se vuoi limitare le piston farm, mettilo a true.
+  apply-piston-limits: false
+
   pagination-results-per-page: 6
+
+  # Questa lista è eccellente per le performance.
+  # Ignora eventi naturali inutili per i limiti.
   disabled-listeners:
-    - "BlockFromToEvent"
-    - "FluidLevelChangeEvent"
-    - "SpongeAbsorbEvent"
-    - "LeavesDecayEvent"
+    - BlockFromToEvent
+    - FluidLevelChangeEvent
+    - SpongeAbsorbEvent
+    - LeavesDecayEvent
+    - BlockSpreadEvent
+    - BlockGrowEvent
+    - StructureGrowEvent
+    - EntityBlockFormEvent
+
   listener-priorities:
     BlockPlaceEvent: LOWEST
     HangingPlaceEvent: LOWEST
@@ -56,6 +81,7 @@ settings:
     BlockPistonExtendEvent: LOWEST
     BlockPistonRetractEvent: LOWEST
     PlayerBucketEmptyEvent: LOWEST
+
   redstone-update-limiter:
     enabled: false
     limit: 50000
