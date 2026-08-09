@@ -267,7 +267,19 @@ public class ScanTask<R> implements Runnable {
                 true,
                 resultSupplier,
                 resultMerger,
-                resultConsumer.andThen(r -> scanners.remove(uuid))
+                r -> {
+                    // Always free up the player's scan slot, even if the result is null
+                    // (the scan completed exceptionally) or resultConsumer throws.
+                    try {
+                        if (r == null) {
+                            plugin.getMessages().getMessage(Messages.Key.SCAN_FAILED).sendTo(player);
+                            return;
+                        }
+                        resultConsumer.accept(r);
+                    } finally {
+                        scanners.remove(uuid);
+                    }
+                }
         );
 
         // Add the player to the scanners
