@@ -15,6 +15,8 @@ messages:
       in corso...
     already-scanning: <prefix><red>Attendi il termine dell''altra scansione prima
       di richiederne un''altra.
+    failed: <prefix><red>La scansione non è stata completata perché uno o più chunk
+      non sono stati caricati. Riprova.
     finish:
       header: <dark_gray><strikethrough>----------------=<reset><dark_gray>[<aqua><bold>
         Scansione Insights<reset> <dark_gray>]<strikethrough>=---------------
